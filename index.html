@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester - Web Postman</title>
+    <style>
+        /* ========== CSS Variables & Reset ========== */
+        :root {
+            /* Dark Theme (Default) */
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f0f1a;
+            --bg-input: #252542;
+            --bg-hover: #2a2a4a;
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --text-muted: #6a6a8a;
+            --border-color: #3a3a5a;
+            --accent: #4a9eff;
+            --accent-hover: #6ab0ff;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+            --info: #60a5fa;
+            
+            /* Method Colors */
+            --method-get: #4ade80;
+            --method-post: #fbbf24;
+            --method-put: #60a5fa;
+            --method-delete: #f87171;
+            --method-patch: #fb923c;
+            --method-head: #9ca3af;
+            --method-options: #9ca3af;
+            
+            /* Spacing */
+            --sidebar-width: 280px;
+            --header-height: 50px;
+            --border-radius: 6px;
+        }
+        
+        .light-theme {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e8eaed;
+            --bg-input: #ffffff;
+            --bg-hover: #e8eaed;
+            --text-primary: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --text-muted: #8a8aaa;
+            --border-color: #d0d0e0;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* ========== Layout ========== */
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* ========== Sidebar ========== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-tertiary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.2s, transform 0.2s;
+        }
+        
+        .sidebar.collapsed {
+            width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sidebar-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sidebar-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Sections */
+        .sidebar-section {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .section-header {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .section-header:hover {
+            background: var(--bg-hover);
+        }
+        
+        .section-title {
+            font-weight: 500;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title .icon {
+            font-size: 16px;
+        }
+        
+        .section-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s;
+        }
+        
+        .section-content.expanded {
+            max-height: 500px;
+        }
+        
+        /* History & Collection Items */
+        .history-item, .collection-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .history-item:hover, .collection-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .method-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            min-width: 45px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        .method-badge.GET { background: var(--method-get); color: #000; }
+        .method-badge.POST { background: var(--method-post); color: #000; }
+        .method-badge.PUT { background: var(--method-put); color: #000; }
+        .method-badge.DELETE { background: var(--method-delete); color: #fff; }
+        .method-badge.PATCH { background: var(--method-patch); color: #000; }
+        .method-badge.HEAD { background: var(--method-head); color: #000; }
+        .method-badge.OPTIONS { background: var(--method-options); color: #000; }
+        
+        .item-url {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .item-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        
+        /* Collection Folder */
+        .collection-folder {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .collection-folder:hover {
+            background: var(--bg-hover);
+        }
+        
+        .collection-requests {
+            padding-left: 24px;
+            display: none;
+        }
+        
+        .collection-requests.expanded {
+            display: block;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            padding: 24px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        /* ========== Main Content ========== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            height: var(--header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+        }
+        
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toggle-sidebar:hover {
+            color: var(--text-primary);
+        }
+        
+        /* URL Bar */
+        .url-bar {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .method-select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 100px;
+        }
+        
+        .method-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .url-input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .url-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: var(--border-radius);
+            color: #fff;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .send-btn:hover {
+            background: var(--accent-hover);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Request/Response Area */
+        .request-response-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Request Panel */
+        .request-panel {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            max-height: 45%;
+            overflow: hidden;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            padding: 0 16px;
+        }
+        
+        .tab {
+            padding: 10px 16px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+        
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        
+        .tab-badge {
+            background: var(--bg-input);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Key-Value Editor */
+        .kv-editor {
+            width: 100%;
+        }
+        
+        .kv-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .kv-table th {
+            text-align: left;
+            padding: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+        }
+        
+        .kv-table td {
+            padding: 4px;
+        }
+        
+        .kv-table input[type="text"] {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        
+        .kv-table input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .kv-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .kv-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        /* Body Editor */
+        .body-type-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .body-type-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .body-type-option input {
+            cursor: pointer;
+        }
+        
+        .body-type-option.selected {
+            color: var(--accent);
+        }
+        
+        .body-editor-container {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .json-editor {
+            width: 100%;
+            min-height: 200px;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text-primary);
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+        
+        .json-editor:focus {
+            outline: none;
+        }
+        
+        .json-toolbar {
+            background: var(--bg-tertiary);
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .json-toolbar button {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .json-toolbar button:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        /* Auth Editor */
+        .auth-type-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .auth-form {
+            max-width: 400px;
+        }
+        
+        .auth-field {
+            margin-bottom: 12px;
+        }
+        
+        .auth-field label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .auth-field input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .auth-field input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        /* Response Panel */
+        .response-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+        
+        .response-header {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .response-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        
+        .status-code {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .status-code.success { background: var(--success); color: #000; }
+        .status-code.redirect { background: var(--warning); color: #000; }
+        .status-code.client-error { background: var(--error); color: #fff; }
+        .status-code.server-error { background: var(--error); color: #fff; }
+        
+        .response-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .response-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .response-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            padding: 0 16px;
+        }
+        
+        .response-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+        }
+        
+        .response-tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .response-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        
+        .response-content {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        /* Syntax Highlighting */
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .json-boolean { color: #569cd6; }
+        .json-null { color: #569cd6; }
+        .json-bracket { color: #ffd700; }
+        
+        /* Response Headers Table */
+        .response-headers-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .response-headers-table th,
+        .response-headers-table td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        
+        .response-headers-table th {
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        /* Preview iframe */
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+        }
+        
+        /* Empty Response State */
+        .response-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+        }
+        
+        .response-empty .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Error State */
+        .error-message {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid var(--error);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            color: var(--error);
+        }
+        
+        .error-message h4 {
+            margin-bottom: 8px;
+        }
+        
+        .error-message p {
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .error-message code {
+            background: rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* Buttons */
+        .btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .btn-icon {
+            padding: 4px;
+            min-width: auto;
+        }
+        
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+            border-color: var(--error);
+            color: var(--error);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+        
+        .modal-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        
+        .theme-toggle:hover {
+            color: var(--text-primary);
+        }
+        
+        
+
+        
+        /* Settings Panel */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        
+        .settings-section h4 {
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        
+        /* File Upload */
+        .file-upload-wrapper {
+            position: relative;
+        }
+        
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-upload-label {
+            display: inline-block;
+            padding: 6px 12px;
+            background: var(--bg-input);
+            border: 1px dashed var(--border-color);
+            border-radius: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* Tooltips */
+        [data-tooltip] {
+            position: relative;
+        }
+        
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 100;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 500;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .sidebar.collapsed {
+                width: var(--sidebar-width);
+            }
+            
+            .url-bar {
+                flex-wrap: wrap;
+            }
+            
+            .method-select {
+                min-width: 80px;
+            }
+            
+            .top-bar {
+                padding: 0 8px;
+                gap: 8px;
+            }
+        }
+        
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px 0;
+            min-width: 150px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .context-menu.active {
+            display: block;
+        }
+        
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .context-menu-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">API Tester</span>
+                <div class="sidebar-actions">
+                    <button class="btn btn-icon" onclick="openSettingsModal()" data-tooltip="设置">⚙️</button>
+                    <button class="btn btn-icon" onclick="toggleTheme()" data-tooltip="切换主题">🌓</button>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <!-- Collections -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection('collections')">
+                        <span class="section-title">
+                            <span class="icon">📁</span>
+                            集合
+                        </span>
+                        <div class="section-actions">
+                            <button class="btn btn-icon" onclick="event.stopPropagation(); openNewCollectionModal()">➕</button>
+                        </div>
+                    </div>
+                    <div class="section-content expanded" id="collections-content">
+                        <div id="collections-list"></div>
+                    </div>
+                </div>
+                
+                <!-- History -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection('history')">
+                        <span class="section-title">
+                            <span class="icon">🕒</span>
+                            历史记录
+                        </span>
+                        <div class="section-actions">
+                            <button class="btn btn-icon btn-danger" onclick="event.stopPropagation(); clearHistory()">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="section-content expanded" id="history-content">
+                        <div id="history-list"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+                
+                <div class="url-bar">
+                    <select class="method-select" id="method-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="HEAD">HEAD</option>
+                        <option value="OPTIONS">OPTIONS</option>
+                    </select>
+                    
+                    <input type="text" class="url-input" id="url-input" placeholder="输入请求 URL">
+                    
+                    <button class="send-btn" id="send-btn" onclick="sendRequest()">发送</button>
+                    
+                </div>
+            </div>
+            
+            <!-- Request/Response Container -->
+            <div class="request-response-container">
+                <!-- Request Panel -->
+                <div class="request-panel">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="params" onclick="switchTab('params')">
+                            Params <span class="tab-badge" id="params-count">0</span>
+                        </div>
+                        <div class="tab" data-tab="headers" onclick="switchTab('headers')">
+                            Headers <span class="tab-badge" id="headers-count">0</span>
+                        </div>
+                        <div class="tab" data-tab="body" onclick="switchTab('body')">
+                            Body
+                        </div>
+                        <div class="tab" data-tab="auth" onclick="switchTab('auth')">
+                            Auth
+                        </div>
+                    </div>
+                    
+                    <!-- Params Tab -->
+                    <div class="tab-content active" id="tab-params">
+                        <div class="kv-editor">
+                            <table class="kv-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;"></th>
+                                        <th>Key</th>
+                                        <th>Value</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="params-tbody">
+                                </tbody>
+                            </table>
+                            <button class="btn" style="margin-top: 8px;" onclick="addParam()">➕ 添加参数</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Headers Tab -->
+                    <div class="tab-content" id="tab-headers">
+                        <div class="kv-editor">
+                            <table class="kv-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;"></th>
+                                        <th>Key</th>
+                                        <th>Value</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="headers-tbody">
+                                </tbody>
+                            </table>
+                            <button class="btn" style="margin-top: 8px;" onclick="addHeader()">➕ 添加请求头</button>
+                            <div style="margin-top: 16px;">
+                                <span style="color: var(--text-muted); font-size: 12px;">常用请求头：</span>
+                                <button class="btn" style="margin-left: 8px;" onclick="addCommonHeader('Content-Type')">Content-Type</button>
+                                <button class="btn" onclick="addCommonHeader('Authorization')">Authorization</button>
+                                <button class="btn" onclick="addCommonHeader('Accept')">Accept</button>
+                                <button class="btn" onclick="addCommonHeader('User-Agent')">User-Agent</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Body Tab -->
+                    <div class="tab-content" id="tab-body">
+                        <div class="body-type-selector">
+                            <label class="body-type-option selected">
+                                <input type="radio" name="body-type" value="none" checked> none
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="body-type" value="json"> JSON
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="body-type" value="form-urlencoded"> x-www-form-urlencoded
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="body-type" value="form-data"> form-data
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="body-type" value="raw"> raw
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="body-type" value="binary"> binary
+                            </label>
+                        </div>
+                        
+                        <!-- JSON Body -->
+                        <div id="body-json" style="display: none;">
+                            <div class="json-toolbar">
+                                <button onclick="formatJSON()">格式化</button>
+                                <button onclick="compressJSON()">压缩</button>
+                                <button onclick="clearJSON()">清空</button>
+                            </div>
+                            <textarea class="json-editor" id="body-json-editor" placeholder='{"key": "value"}'></textarea>
+                        </div>
+                        
+                        <!-- Form URLEncoded Body -->
+                        <div id="body-form-urlencoded" style="display: none;">
+                            <div class="kv-editor">
+                                <table class="kv-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;"></th>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                            <th style="width: 40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="form-urlencoded-tbody">
+                                    </tbody>
+                                </table>
+                                <button class="btn" style="margin-top: 8px;" onclick="addFormUrlencoded()">➕ 添加字段</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Data Body -->
+                        <div id="body-form-data" style="display: none;">
+                            <div class="kv-editor">
+                                <table class="kv-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;"></th>
+                                            <th>Key</th>
+                                            <th>Value</th>
+                                            <th>Type</th>
+                                            <th style="width: 40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="form-data-tbody">
+                                    </tbody>
+                                </table>
+                                <button class="btn" style="margin-top: 8px;" onclick="addFormData()">➕ 添加字段</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Raw Body -->
+                        <div id="body-raw" style="display: none;">
+                            <textarea class="json-editor" id="body-raw-editor" style="min-height: 150px;" placeholder="输入原始文本..."></textarea>
+                        </div>
+                        
+                        <!-- Binary Body -->
+                        <div id="body-binary" style="display: none;">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="body-binary-input" onchange="handleBinaryFile(this)">
+                                <span class="file-upload-label" id="binary-file-label">点击选择文件或拖拽文件到此处</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Auth Tab -->
+                    <div class="tab-content" id="tab-auth">
+                        <div class="auth-type-selector">
+                            <label class="body-type-option selected">
+                                <input type="radio" name="auth-type" value="none" checked> No Auth
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="auth-type" value="bearer"> Bearer Token
+                            </label>
+                            <label class="body-type-option">
+                                <input type="radio" name="auth-type" value="basic"> Basic Auth
+                            </label>
+                        </div>
+                        
+                        <div id="auth-bearer" class="auth-form" style="display: none;">
+                            <div class="auth-field">
+                                <label>Token</label>
+                                <input type="text" id="bearer-token" placeholder="输入 Bearer Token">
+                            </div>
+                        </div>
+                        
+                        <div id="auth-basic" class="auth-form" style="display: none;">
+                            <div class="auth-field">
+                                <label>Username</label>
+                                <input type="text" id="basic-username" placeholder="用户名">
+                            </div>
+                            <div class="auth-field">
+                                <label>Password</label>
+                                <input type="password" id="basic-password" placeholder="密码">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tests Tab -->
+                    <div class="tab-content" id="tab-tests">
+                    </div>
+                </div>
+                
+                <!-- Response Panel -->
+                <div class="response-panel">
+                    <div class="response-header" id="response-header" style="display: none;">
+                        <div class="response-status">
+                            <span class="status-code" id="status-code"></span>
+                            <span id="status-text"></span>
+                        </div>
+                        <span class="response-meta" id="response-time"></span>
+                        <span class="response-meta" id="response-size"></span>
+                        <div class="response-actions">
+                            <button class="btn" onclick="copyResponse()">📋 复制</button>
+                            <button class="btn" onclick="saveToCollection()">💾 保存</button>
+                        </div>
+                    </div>
+                    
+                    <div class="response-tabs" id="response-tabs" style="display: none;">
+                        <div class="response-tab active" data-response-tab="pretty" onclick="switchResponseTab('pretty')">Pretty</div>
+                        <div class="response-tab" data-response-tab="raw" onclick="switchResponseTab('raw')">Raw</div>
+                        <div class="response-tab" data-response-tab="preview" onclick="switchResponseTab('preview')">Preview</div>
+                        <div class="response-tab" data-response-tab="headers" onclick="switchResponseTab('headers')">Headers</div>
+                    </div>
+                    
+                    <div class="response-content" id="response-content">
+                        <div class="response-empty" id="response-empty">
+                            <div class="icon">📡</div>
+                            <p>点击 "发送" 按钮发送请求</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" onclick="contextMenuAction('load')">加载请求</div>
+        <div class="context-menu-item" onclick="contextMenuAction('duplicate')">复制</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="contextMenuAction('rename')">重命名</div>
+        <div class="context-menu-item btn-danger" onclick="contextMenuAction('delete')">删除</div>
+    </div>
+    
+    <!-- Modals -->
+    <!-- New Collection Modal -->
+    <div class="modal-overlay" id="new-collection-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="collection-modal-title">新建集合</h3>
+                <button class="btn btn-icon" onclick="closeModal('new-collection-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>集合名称</label>
+                    <input type="text" id="new-collection-name" placeholder="输入集合名称">
+                </div>
+                <div class="form-group" id="collection-request-name-group" style="display: none;">
+                    <label>请求名称</label>
+                    <input type="text" id="new-request-name" placeholder="输入请求名称">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('new-collection-modal')">取消</button>
+                <button class="btn send-btn" onclick="saveCollection()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>设置</h3>
+                <button class="btn btn-icon" onclick="closeModal('settings-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>数据管理</h4>
+                    <button class="btn" onclick="exportCollections()">📤 导出集合</button>
+                    <button class="btn" onclick="document.getElementById('import-file').click()">📥 导入集合</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importCollections(this)">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('settings-modal')">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    </div>
+
+    <script>
+        /* ========== State Management ========== */
+        const state = {
+            currentRequest: {
+                method: 'GET',
+                url: '',
+                params: [],
+                headers: [],
+                body: { type: 'none', content: '' },
+                auth: { type: 'none' }
+            },
+            response: null,
+            history: [],
+            collections: [],
+            contextItem: null,
+            contextType: null,
+            editingCollection: null,
+            editingRequest: null,
+            binaryFile: null
+        };
+        
+        /* ========== Initialize ========== */
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            initEventListeners();
+            renderHistory();
+            renderCollections();
+            addParam();
+            addHeader();
+            addFormUrlencoded();
+            addFormData();
+            
+            // Apply theme
+            if (localStorage.getItem('theme') === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        });
+        
+        function loadFromStorage() {
+            // Load history
+            const savedHistory = localStorage.getItem('api_tester_history');
+            if (savedHistory) {
+                state.history = JSON.parse(savedHistory);
+            }
+            
+            // Load collections
+            const savedCollections = localStorage.getItem('api_tester_collections');
+            if (savedCollections) {
+                state.collections = JSON.parse(savedCollections);
+            }
+        }
+        
+        function saveToStorage() {
+            localStorage.setItem('api_tester_history', JSON.stringify(state.history));
+            localStorage.setItem('api_tester_collections', JSON.stringify(state.collections));
+        }
+        
+        function initEventListeners() {
+            // Method select color
+            const methodSelect = document.getElementById('method-select');
+            methodSelect.addEventListener('change', () => {
+                state.currentRequest.method = methodSelect.value;
+            });
+            
+            // URL input
+            const urlInput = document.getElementById('url-input');
+            urlInput.addEventListener('input', () => {
+                state.currentRequest.url = urlInput.value;
+                updateParamsFromUrl();
+            });
+            
+            // Body type selector
+            document.querySelectorAll('input[name="body-type"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    document.querySelectorAll('.body-type-option').forEach(opt => opt.classList.remove('selected'));
+                    e.target.closest('.body-type-option').classList.add('selected');
+                    showBodyType(e.target.value);
+                    state.currentRequest.body.type = e.target.value;
+                });
+            });
+            
+            // Auth type selector
+            document.querySelectorAll('input[name="auth-type"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    document.querySelectorAll('.auth-type-selector .body-type-option').forEach(opt => opt.classList.remove('selected'));
+                    e.target.closest('.body-type-option').classList.add('selected');
+                    showAuthType(e.target.value);
+                    state.currentRequest.auth.type = e.target.value;
+                });
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendRequest();
+                    }
+                }
+            });
+            
+            // Close context menu on click outside
+            document.addEventListener('click', () => {
+                document.getElementById('context-menu').classList.remove('active');
+            });
+            
+            // JSON editor formatting
+            document.getElementById('body-json-editor').addEventListener('blur', () => {
+                try {
+                    const json = JSON.parse(document.getElementById('body-json-editor').value);
+                    document.getElementById('body-json-editor').value = JSON.stringify(json, null, 2);
+                } catch (e) {}
+            });
+        }
+        
+        /* ========== UI Functions ========== */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            sidebar.classList.toggle('open');
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+        
+        function toggleSection(section) {
+            const content = document.getElementById(`${section}-content`);
+            content.classList.toggle('expanded');
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tabs .tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+        
+        function switchResponseTab(tabName) {
+            document.querySelectorAll('.response-tabs .response-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`.response-tab[data-response-tab="${tabName}"]`).classList.add('active');
+            
+            const content = document.getElementById('response-content');
+            if (tabName === 'pretty') {
+                renderPrettyResponse();
+            } else if (tabName === 'raw') {
+                renderRawResponse();
+            } else if (tabName === 'preview') {
+                renderPreviewResponse();
+            } else if (tabName === 'headers') {
+                renderHeadersResponse();
+            }
+        }
+        
+        function showBodyType(type) {
+            ['json', 'form-urlencoded', 'form-data', 'raw', 'binary'].forEach(t => {
+                document.getElementById(`body-${t}`).style.display = 'none';
+            });
+            document.getElementById(`body-${type}`).style.display = type === 'none' ? 'none' : 'block';
+        }
+        
+        function showAuthType(type) {
+            document.getElementById('auth-bearer').style.display = type === 'bearer' ? 'block' : 'none';
+            document.getElementById('auth-basic').style.display = type === 'basic' ? 'block' : 'none';
+        }
+        
+        function updateBadgeCount(type) {
+            const tbody = document.getElementById(`${type}-tbody`);
+            const rows = tbody.querySelectorAll('tr');
+            let count = 0;
+            rows.forEach(row => {
+                const key = row.querySelector('input[type="text"]');
+                if (key && key.value.trim()) count++;
+            });
+            document.getElementById(`${type}-count`).textContent = count;
+        }
+        
+        /* ========== Key-Value Editor Functions ========== */
+        function addParam() {
+            const tbody = document.getElementById('params-tbody');
+            const row = createKVRow('param');
+            tbody.appendChild(row);
+            updateBadgeCount('params');
+        }
+        
+        function addHeader() {
+            const tbody = document.getElementById('headers-tbody');
+            const row = createKVRow('header');
+            tbody.appendChild(row);
+            updateBadgeCount('headers');
+        }
+        
+        function addFormUrlencoded() {
+            const tbody = document.getElementById('form-urlencoded-tbody');
+            const row = createKVRow('form-urlencoded');
+            tbody.appendChild(row);
+        }
+        
+        function addFormData() {
+            const tbody = document.getElementById('form-data-tbody');
+            const row = createFormDataRow();
+            tbody.appendChild(row);
+        }
+        
+        function addCommonHeader(name) {
+            const tbody = document.getElementById('headers-tbody');
+            const inputs = tbody.querySelectorAll('input[type="text"]');
+            let found = false;
+            for (let input of inputs) {
+                if (input.value === name) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const row = createKVRow('header');
+                const inputs_in_row = row.querySelectorAll('input[type="text"]');
+                inputs_in_row[0].value = name;
+                tbody.appendChild(row);
+                updateBadgeCount('headers');
+            }
+        }
+        
+        function createKVRow(type) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" checked></td>
+                <td><input type="text" placeholder="Key" onchange="updateBadgeCount('${type}')"></td>
+                <td><input type="text" placeholder="Value" onchange="updateBadgeCount('${type}')"></td>
+                <td>
+                    <div class="kv-actions">
+                        <button class="btn btn-icon btn-danger" onclick="removeRow(this)">✕</button>
+                    </div>
+                </td>
+            `;
+            return tr;
+        }
+        
+        function createFormDataRow() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" checked></td>
+                <td><input type="text" placeholder="Key"></td>
+                <td><input type="text" placeholder="Value" class="form-data-value"></td>
+                <td>
+                    <select style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); padding: 4px;">
+                        <option value="text">text</option>
+                        <option value="file">file</option>
+                    </select>
+                </td>
+                <td>
+                    <div class="kv-actions">
+                        <button class="btn btn-icon btn-danger" onclick="removeRow(this)">✕</button>
+                    </div>
+                </td>
+            `;
+            
+            // Handle file type selection
+            const typeSelect = tr.querySelector('select');
+            const valueInput = tr.querySelector('.form-data-value');
+            typeSelect.addEventListener('change', () => {
+                if (typeSelect.value === 'file') {
+                    valueInput.outerHTML = `<input type="file" class="form-data-file" style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); padding: 4px; width: 100%;">`;
+                } else {
+                    valueInput.outerHTML = `<input type="text" placeholder="Value" class="form-data-value">`;
+                }
+            });
+            
+            return tr;
+        }
+        
+        function removeRow(btn) {
+            const tr = btn.closest('tr');
+            const tbody = tr.closest('tbody');
+            tr.remove();
+            if (tbody.id === 'params-tbody') updateBadgeCount('params');
+            if (tbody.id === 'headers-tbody') updateBadgeCount('headers');
+        }
+        
+        function updateParamsFromUrl() {
+            const url = document.getElementById('url-input').value;
+            try {
+                const urlObj = new URL(url.startsWith('http') ? url : 'http://placeholder.com' + url);
+                const params = urlObj.searchParams;
+                
+                if (params.toString()) {
+                    const tbody = document.getElementById('params-tbody');
+                    tbody.innerHTML = '';
+                    params.forEach((value, key) => {
+                        const row = createKVRow('param');
+                        const inputs = row.querySelectorAll('input[type="text"]');
+                        inputs[0].value = key;
+                        inputs[1].value = value;
+                        tbody.appendChild(row);
+                    });
+                    updateBadgeCount('params');
+                }
+            } catch (e) {}
+        }
+        
+        /* ========== JSON Editor Functions ========== */
+        function formatJSON() {
+            const editor = document.getElementById('body-json-editor');
+            try {
+                const json = JSON.parse(editor.value);
+                editor.value = JSON.stringify(json, null, 2);
+            } catch (e) {
+                alert('无效的 JSON 格式');
+            }
+        }
+        
+        function compressJSON() {
+            const editor = document.getElementById('body-json-editor');
+            try {
+                const json = JSON.parse(editor.value);
+                editor.value = JSON.stringify(json);
+            } catch (e) {
+                alert('无效的 JSON 格式');
+            }
+        }
+        
+        function clearJSON() {
+            document.getElementById('body-json-editor').value = '';
+        }
+        
+        function handleBinaryFile(input) {
+            if (input.files.length > 0) {
+                state.binaryFile = input.files[0];
+                document.getElementById('binary-file-label').textContent = input.files[0].name;
+            }
+        }
+        
+        /* ========== Send Request ========== */
+        async function sendRequest() {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = '发送中...';
+            
+            // Hide empty state, show loading
+            document.getElementById('response-empty').style.display = 'none';
+            
+            try {
+                // Build request
+                const request = buildRequest();
+                
+                // Send request
+                const startTime = performance.now();
+                const response = await fetch(request.url, request.options);
+                const endTime = performance.now();
+                
+                // Parse response
+                const responseText = await response.text();
+                const responseSize = new Blob([responseText]).size;
+                
+                state.response = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    body: responseText,
+                    contentType: response.headers.get('content-type') || '',
+                    time: Math.round(endTime - startTime),
+                    size: responseSize
+                };
+                
+                // Display response
+                displayResponse();
+                
+                // Save to history
+                saveToHistory(request);
+                
+            } catch (error) {
+                displayError(error);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '发送';
+            }
+        }
+        
+        function buildRequest() {
+            const method = document.getElementById('method-select').value;
+            let url = document.getElementById('url-input').value;
+            
+            // Build query params
+            const paramsRows = document.getElementById('params-tbody').querySelectorAll('tr');
+            const searchParams = new URLSearchParams();
+            paramsRows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                    const inputs = row.querySelectorAll('input[type="text"]');
+                    const key = inputs[0].value;
+                    const value = inputs[1].value;
+                    if (key) searchParams.append(key, value);
+                }
+            });
+            
+            if (searchParams.toString()) {
+                url += (url.includes('?') ? '&' : '?') + searchParams.toString();
+            }
+            
+            // Build headers
+            const headersRows = document.getElementById('headers-tbody').querySelectorAll('tr');
+            const headers = {};
+            headersRows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                    const inputs = row.querySelectorAll('input[type="text"]');
+                    const key = inputs[0].value;
+                    const value = inputs[1].value;
+                    if (key) headers[key] = value;
+                }
+            });
+            
+            // Build body
+            let body = null;
+            const bodyType = document.querySelector('input[name="body-type"]:checked').value;
+            
+            if (bodyType !== 'none') {
+                if (bodyType === 'json') {
+                    const jsonContent = document.getElementById('body-json-editor').value;
+                    body = jsonContent;
+                    if (!headers['Content-Type']) {
+                        headers['Content-Type'] = 'application/json';
+                    }
+                } else if (bodyType === 'form-urlencoded') {
+                    const formRows = document.getElementById('form-urlencoded-tbody').querySelectorAll('tr');
+                    const formData = new URLSearchParams();
+                    formRows.forEach(row => {
+                        const checkbox = row.querySelector('input[type="checkbox"]');
+                        if (checkbox && checkbox.checked) {
+                            const inputs = row.querySelectorAll('input[type="text"]');
+                            const key = inputs[0].value;
+                            const value = inputs[1].value;
+                            if (key) formData.append(key, value);
+                        }
+                    });
+                    body = formData.toString();
+                    if (!headers['Content-Type']) {
+                        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                    }
+                } else if (bodyType === 'form-data') {
+                    const formRows = document.getElementById('form-data-tbody').querySelectorAll('tr');
+                    body = new FormData();
+                    formRows.forEach(row => {
+                        const checkbox = row.querySelector('input[type="checkbox"]');
+                        if (checkbox && checkbox.checked) {
+                            const inputs = row.querySelectorAll('input');
+                            const key = inputs[1].value;
+                            const typeSelect = row.querySelector('select');
+                            
+                            if (typeSelect.value === 'file') {
+                                const fileInput = row.querySelector('input[type="file"]');
+                                if (fileInput.files.length > 0) {
+                                    body.append(key, fileInput.files[0]);
+                                }
+                            } else {
+                                const value = inputs[2].value;
+                                body.append(key, value);
+                            }
+                        }
+                    });
+                    delete headers['Content-Type']; // Let browser set multipart boundary
+                } else if (bodyType === 'raw') {
+                    body = document.getElementById('body-raw-editor').value;
+                } else if (bodyType === 'binary') {
+                    body = state.binaryFile;
+                }
+            }
+            
+            // Auth
+            const authType = document.querySelector('input[name="auth-type"]:checked').value;
+            if (authType === 'bearer') {
+                const token = document.getElementById('bearer-token').value;
+                headers['Authorization'] = `Bearer ${token}`;
+            } else if (authType === 'basic') {
+                const username = document.getElementById('basic-username').value;
+                const password = document.getElementById('basic-password').value;
+                headers['Authorization'] = `Basic ${btoa(username + ':' + password)}`;
+            }
+            
+            return {
+                url,
+                options: {
+                    method,
+                    headers,
+                    body: bodyType === 'form-data' ? body : (body || undefined),
+                    mode: 'cors'
+                }
+            };
+        }
+        
+        /* ========== Display Response ========== */
+        function displayResponse() {
+            const { status, statusText, headers, body, contentType, time, size } = state.response;
+            
+            // Show response header
+            const responseHeader = document.getElementById('response-header');
+            responseHeader.style.display = 'flex';
+            
+            // Status
+            const statusCode = document.getElementById('status-code');
+            statusCode.textContent = status;
+            statusCode.className = 'status-code';
+            
+            if (status >= 200 && status < 300) {
+                statusCode.classList.add('success');
+            } else if (status >= 300 && status < 400) {
+                statusCode.classList.add('redirect');
+            } else if (status >= 400 && status < 500) {
+                statusCode.classList.add('client-error');
+            } else {
+                statusCode.classList.add('server-error');
+            }
+            
+            document.getElementById('status-text').textContent = statusText;
+            document.getElementById('response-time').textContent = `耗时: ${time}ms`;
+            document.getElementById('response-size').textContent = `大小: ${formatSize(size)}`;
+            
+            // Show tabs
+            document.getElementById('response-tabs').style.display = 'flex';
+            
+            // Render pretty by default
+            renderPrettyResponse();
+        }
+        
+        function renderPrettyResponse() {
+            const { body, contentType } = state.response;
+            const content = document.getElementById('response-content');
+            
+            if (contentType.includes('json')) {
+                try {
+                    const json = JSON.parse(body);
+                    content.innerHTML = `<pre>${syntaxHighlight(JSON.stringify(json, null, 2))}</pre>`;
+                } catch (e) {
+                    content.innerHTML = `<pre>${escapeHtml(body)}</pre>`;
+                }
+            } else if (contentType.includes('html')) {
+                try {
+                    const json = JSON.parse(body);
+                    content.innerHTML = `<pre>${syntaxHighlight(JSON.stringify(json, null, 2))}</pre>`;
+                } catch (e) {
+                    content.innerHTML = `<pre>${escapeHtml(body)}</pre>`;
+                }
+            } else {
+                try {
+                    const json = JSON.parse(body);
+                    content.innerHTML = `<pre>${syntaxHighlight(JSON.stringify(json, null, 2))}</pre>`;
+                } catch (e) {
+                    content.innerHTML = `<pre>${escapeHtml(body)}</pre>`;
+                }
+            }
+        }
+        
+        function renderRawResponse() {
+            const { body } = state.response;
+            const content = document.getElementById('response-content');
+            content.innerHTML = `<pre>${escapeHtml(body)}</pre>`;
+        }
+        
+        function renderPreviewResponse() {
+            const { body, contentType } = state.response;
+            const content = document.getElementById('response-content');
+            
+            if (contentType.includes('html')) {
+                content.innerHTML = `<iframe class="preview-frame" srcdoc="${escapeHtml(body)}"></iframe>`;
+            } else {
+                content.innerHTML = `<div class="response-empty"><p>预览仅适用于 HTML 响应</p></div>`;
+            }
+        }
+        
+        function renderHeadersResponse() {
+            const { headers } = state.response;
+            const content = document.getElementById('response-content');
+            
+            let html = '<table class="response-headers-table"><thead><tr><th>Header</th><th>Value</th></tr></thead><tbody>';
+            Object.entries(headers).forEach(([key, value]) => {
+                html += `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(value)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        }
+        
+        function syntaxHighlight(json) {
+            json = escapeHtml(json);
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                } else if (/[{}\[\]]/.test(match)) {
+                    cls = 'json-bracket';
+                }
+                return `<span class="${cls}">${match}</span>`;
+            });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        
+        function displayError(error) {
+            const content = document.getElementById('response-content');
+            
+            let errorTitle = '请求失败';
+            let errorMessage = error.message;
+            let suggestion = '';
+            
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                errorTitle = '网络错误 / CORS 错误';
+                errorMessage = '无法连接到服务器，这可能是由于：';
+                suggestion = `
+                    <p>1. 服务器不支持 CORS（跨域资源共享）</p>
+                    <p>2. 服务器暂时不可用</p>
+                    <p>3. 网络连接问题</p>
+                    <p style="margin-top: 12px;">建议：</p>
+                    <p>• 使用浏览器扩展程序（如 Allow CORS）绕过限制</p>
+                    <p>• 如果这是您自己的 API，请配置 CORS 头部</p>
+                    <p>• 检查 API 地址是否正确</p>
+                `;
+            }
+            
+            content.innerHTML = `
+                <div class="error-message">
+                    <h4>⚠️ ${errorTitle}</h4>
+                    <p><code>${escapeHtml(errorMessage)}</code></p>
+                    ${suggestion}
+                </div>
+            `;
+            
+            document.getElementById('response-header').style.display = 'none';
+            document.getElementById('response-tabs').style.display = 'none';
+        }
+        
+        function copyResponse() {
+            if (state.response) {
+                navigator.clipboard.writeText(state.response.body);
+                alert('响应已复制到剪贴板');
+            }
+        }
+        
+        /* ========== History ========== */
+        function saveToHistory(request) {
+            const historyItem = {
+                id: Date.now(),
+                method: request.options.method,
+                url: request.url,
+                timestamp: new Date().toISOString(),
+                request: {
+                    headers: Array.from(document.getElementById('headers-tbody').querySelectorAll('tr')).map(row => ({
+                        key: row.querySelectorAll('input[type="text"]')[0]?.value || '',
+                        value: row.querySelectorAll('input[type="text"]')[1]?.value || '',
+                        enabled: row.querySelector('input[type="checkbox"]')?.checked
+                    })),
+                    params: Array.from(document.getElementById('params-tbody').querySelectorAll('tr')).map(row => ({
+                        key: row.querySelectorAll('input[type="text"]')[0]?.value || '',
+                        value: row.querySelectorAll('input[type="text"]')[1]?.value || '',
+                        enabled: row.querySelector('input[type="checkbox"]')?.checked
+                    })),
+                    body: state.currentRequest.body
+                }
+            };
+            
+            state.history.unshift(historyItem);
+            if (state.history.length > 50) {
+                state.history = state.history.slice(0, 50);
+            }
+            
+            saveToStorage();
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            
+            if (state.history.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无历史记录</div>';
+                return;
+            }
+            
+            let html = '';
+            state.history.forEach(item => {
+                const date = new Date(item.timestamp);
+                const timeStr = formatTime(date);
+                const shortUrl = truncateUrl(item.url);
+                
+                html += `
+                    <div class="history-item" onclick="loadFromHistory(${item.id})" oncontextmenu="showContextMenu(event, 'history', ${item.id})">
+                        <span class="method-badge ${item.method}">${item.method}</span>
+                        <span class="item-url">${escapeHtml(shortUrl)}</span>
+                        <span class="item-time">${timeStr}</span>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+        
+        function loadFromHistory(id) {
+            const item = state.history.find(h => h.id === id);
+            if (!item) return;
+            
+            loadRequest(item);
+        }
+        
+        function clearHistory() {
+            if (confirm('确定清空所有历史记录？')) {
+                state.history = [];
+                saveToStorage();
+                renderHistory();
+            }
+        }
+        
+        /* ========== Collections ========== */
+        function openNewCollectionModal(requestId = null) {
+            state.editingRequest = requestId;
+            document.getElementById('collection-modal-title').textContent = requestId ? '保存请求' : '新建集合';
+            document.getElementById('collection-request-name-group').style.display = requestId ? 'block' : 'none';
+            document.getElementById('new-collection-name').value = '';
+            document.getElementById('new-request-name').value = '';
+            openModal('new-collection-modal');
+        }
+        
+        function saveCollection() {
+            const name = document.getElementById('new-collection-name').value.trim();
+            if (!name) {
+                alert('请输入集合名称');
+                return;
+            }
+            
+            if (state.editingRequest) {
+                // Save request to existing collection
+                const requestName = document.getElementById('new-request-name').value.trim() || '新请求';
+                const collection = state.collections.find(c => c.id === state.editingRequest);
+                if (collection) {
+                    const currentRequest = buildCurrentRequest();
+                    currentRequest.name = requestName;
+                    collection.requests.push(currentRequest);
+                    saveToStorage();
+                    renderCollections();
+                    closeModal('new-collection-modal');
+                }
+            } else {
+                // Create new collection
+                const collection = {
+                    id: Date.now(),
+                    name: name,
+                    requests: [],
+                    createdAt: new Date().toISOString()
+                };
+                state.collections.push(collection);
+                saveToStorage();
+                renderCollections();
+                closeModal('new-collection-modal');
+            }
+        }
+        
+        function renderCollections() {
+            const list = document.getElementById('collections-list');
+            
+            if (state.collections.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无集合<br><button class="btn" style="margin-top: 8px;" onclick="openNewCollectionModal()">创建集合</button></div>';
+                return;
+            }
+            
+            let html = '';
+            state.collections.forEach(collection => {
+                html += `
+                    <div class="collection-folder" onclick="toggleCollectionFolder(this)">
+                        <span>📁</span>
+                        <span>${escapeHtml(collection.name)}</span>
+                        <button class="btn btn-icon" onclick="event.stopPropagation(); addRequestToCollection(${collection.id})" style="margin-left: auto;">➕</button>
+                    </div>
+                    <div class="collection-requests">
+                `;
+                
+                collection.requests.forEach(request => {
+                    const shortUrl = truncateUrl(request.url);
+                    html += `
+                        <div class="collection-item" onclick="loadRequest(${JSON.stringify(request).replace(/"/g, '&quot;')})" oncontextmenu="showContextMenu(event, 'request', ${collection.id}, '${request.name}')">
+                            <span class="method-badge ${request.method}">${request.method}</span>
+                            <span class="item-url">${escapeHtml(request.name || shortUrl)}</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+            
+            list.innerHTML = html;
+        }
+        
+        function toggleCollectionFolder(element) {
+            const requests = element.nextElementSibling;
+            requests.classList.toggle('expanded');
+        }
+        
+        function addRequestToCollection(collectionId) {
+            openNewCollectionModal(collectionId);
+        }
+        
+        function saveToCollection() {
+            openNewCollectionModal();
+        }
+        
+        function loadRequest(request) {
+            // Method
+            document.getElementById('method-select').value = request.method || 'GET';
+            
+            // URL
+            document.getElementById('url-input').value = request.url || '';
+            
+            // Headers
+            const headersTbody = document.getElementById('headers-tbody');
+            headersTbody.innerHTML = '';
+            if (request.headers && request.headers.length > 0) {
+                request.headers.forEach(h => {
+                    const row = createKVRow('header');
+                    const inputs = row.querySelectorAll('input[type="text"]');
+                    inputs[0].value = h.key || '';
+                    inputs[1].value = h.value || '';
+                    row.querySelector('input[type="checkbox"]').checked = h.enabled !== false;
+                    headersTbody.appendChild(row);
+                });
+            } else {
+                addHeader();
+            }
+            updateBadgeCount('headers');
+            
+            // Params
+            const paramsTbody = document.getElementById('params-tbody');
+            paramsTbody.innerHTML = '';
+            if (request.params && request.params.length > 0) {
+                request.params.forEach(p => {
+                    const row = createKVRow('param');
+                    const inputs = row.querySelectorAll('input[type="text"]');
+                    inputs[0].value = p.key || '';
+                    inputs[1].value = p.value || '';
+                    row.querySelector('input[type="checkbox"]').checked = p.enabled !== false;
+                    paramsTbody.appendChild(row);
+                });
+            } else {
+                addParam();
+            }
+            updateBadgeCount('params');
+            
+            // Body
+            if (request.body) {
+                document.querySelector(`input[name="body-type"][value="${request.body.type || 'none'}"]`).checked = true;
+                document.querySelectorAll('.body-type-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.querySelector('input').value === (request.body.type || 'none'));
+                });
+                showBodyType(request.body.type || 'none');
+                
+                if (request.body.type === 'json' && request.body.content) {
+                    document.getElementById('body-json-editor').value = request.body.content;
+                } else if (request.body.type === 'raw' && request.body.content) {
+                    document.getElementById('body-raw-editor').value = request.body.content;
+                }
+            }
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+        
+        function buildCurrentRequest() {
+            return {
+                id: Date.now(),
+                method: document.getElementById('method-select').value,
+                url: document.getElementById('url-input').value,
+                headers: Array.from(document.getElementById('headers-tbody').querySelectorAll('tr')).map(row => ({
+                    key: row.querySelectorAll('input[type="text"]')[0]?.value || '',
+                    value: row.querySelectorAll('input[type="text"]')[1]?.value || '',
+                    enabled: row.querySelector('input[type="checkbox"]')?.checked
+                })),
+                params: Array.from(document.getElementById('params-tbody').querySelectorAll('tr')).map(row => ({
+                    key: row.querySelectorAll('input[type="text"]')[0]?.value || '',
+                    value: row.querySelectorAll('input[type="text"]')[1]?.value || '',
+                    enabled: row.querySelector('input[type="checkbox"]')?.checked
+                })),
+                body: {
+                    type: document.querySelector('input[name="body-type"]:checked')?.value || 'none',
+                    content: document.getElementById('body-json-editor')?.value || ''
+                }
+            };
+        }
+        
+        /* ========== Context Menu ========== */
+        function showContextMenu(event, type, id, requestName = null) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            state.contextType = type;
+            state.contextItem = { id, requestName };
+            
+            const menu = document.getElementById('context-menu');
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+            menu.classList.add('active');
+        }
+        
+        function contextMenuAction(action) {
+            const { id, requestName } = state.contextItem;
+            
+            if (state.contextType === 'history') {
+                const item = state.history.find(h => h.id === id);
+                if (action === 'load') {
+                    loadFromHistory(id);
+                } else if (action === 'delete') {
+                    state.history = state.history.filter(h => h.id !== id);
+                    saveToStorage();
+                    renderHistory();
+                } else if (action === 'duplicate') {
+                    openNewCollectionModal();
+                }
+            } else if (state.contextType === 'request') {
+                const collection = state.collections.find(c => c.id === id);
+                if (collection) {
+                    const request = collection.requests.find(r => r.name === requestName);
+                    if (action === 'load' && request) {
+                        loadRequest(request);
+                    } else if (action === 'delete' && request) {
+                        collection.requests = collection.requests.filter(r => r.name !== requestName);
+                        saveToStorage();
+                        renderCollections();
+                    } else if (action === 'rename') {
+                        const newName = prompt('输入新名称:', requestName);
+                        if (newName && request) {
+                            request.name = newName;
+                            saveToStorage();
+                            renderCollections();
+                        }
+                    } else if (action === 'duplicate' && request) {
+                        const newRequest = { ...request, id: Date.now(), name: request.name + ' (副本)' };
+                        collection.requests.push(newRequest);
+                        saveToStorage();
+                        renderCollections();
+                    }
+                }
+            }
+            
+            document.getElementById('context-menu').classList.remove('active');
+        }
+        
+        /* ========== Import/Export ========== */
+        function exportCollections() {
+            const data = {
+                collections: state.collections,
+                exportedAt: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `api-collections-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function importCollections(input) {
+            if (input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.collections) {
+                        state.collections = [...state.collections, ...data.collections];
+                    }
+                    
+                    saveToStorage();
+                    renderCollections();
+                    alert('导入成功');
+                } catch (err) {
+                    alert('导入失败：无效的 JSON 文件');
+                }
+            };
+            
+            reader.readAsText(file);
+            input.value = '';
+        }
+        
+        /* ========== Settings ========== */
+        function openSettingsModal() {
+            openModal('settings-modal');
+        }
+        
+        /* ========== Modal Helpers ========== */
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        /* ========== Utility Functions ========== */
+        function formatTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+            
+            return date.toLocaleDateString('zh-CN');
+        }
+        
+        function truncateUrl(url) {
+            if (!url) return '';
+            try {
+                const urlObj = new URL(url);
+                const path = urlObj.pathname + urlObj.search;
+                return urlObj.hostname + (path.length > 30 ? path.slice(0, 30) + '...' : path);
+            } catch (e) {
+                return url.length > 40 ? url.slice(0, 40) + '...' : url;
+            }
+        }
+    </script>
+</body>
+</html>
